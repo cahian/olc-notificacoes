@@ -27,7 +27,12 @@ class TrelloWebhook {
             });
         });
 
-        // Webhook principal do Trello
+        // Webhook principal do Trello - GET para validação
+        this.app.get('/trello-webhook', (req, res) => {
+            res.status(200).send('OK');
+        });
+
+        // Webhook principal do Trello - POST para eventos
         this.app.post('/trello-webhook', (req, res) => {
             this.handleTrelloWebhook(req, res);
         });
