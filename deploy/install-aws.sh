@@ -1,30 +1,40 @@
 #!/bin/bash
 
-# Script de instalação do OLC Notificações para Google Cloud e2-micro
+# Script de instalação do OLC Notificações para AWS EC2 t2.micro
 # Autor: Sistema OLC Notificações
-# Otimizado para VM e2-micro (1GB RAM) - Free Tier
+# Otimizado para instância t2.micro (1GB RAM) - Free Tier
 
 set -e
 
-echo "🌩️ Iniciando instalação no Google Cloud e2-micro..."
+echo "☁️ Iniciando instalação no AWS EC2 t2.micro..."
 
 # Verificar recursos disponíveis
-echo "🔍 Verificando recursos da VM..."
+echo "🔍 Verificando recursos da instância..."
 TOTAL_RAM=$(free -m | awk 'NR==2{printf "%.0f", $2}')
 TOTAL_DISK=$(df -h / | awk 'NR==2{print $2}')
 echo "✅ RAM total: ${TOTAL_RAM}MB"
 echo "✅ Disk total: $TOTAL_DISK"
 
 if [ "$TOTAL_RAM" -lt "800" ]; then
-    echo "⚠️ RAM muito baixa ($TOTAL_RAM MB) - aplicando otimizações críticas"
+    echo "⚠️ RAM baixa ($TOTAL_RAM MB) - aplicando otimizações críticas"
     LOW_MEMORY=true
 else
-    echo "✅ RAM adequada para e2-micro"
+    echo "✅ RAM adequada para t2.micro"
     LOW_MEMORY=false
 fi
 
-# Configurar swap PRIMEIRO (crítico para e2-micro)
-echo "💾 Configurando swap de 2GB (crítico para e2-micro)..."
+# Verificar se estamos na AWS
+echo "🌐 Verificando ambiente AWS..."
+if curl -s --max-time 3 http://169.254.169.254/latest/meta-data/instance-type | grep -q "t2.micro"; then
+    echo "✅ AWS EC2 t2.micro detectado"
+    AWS_INSTANCE=true
+else
+    echo "⚠️ Pode não ser uma instância t2.micro AWS"
+    AWS_INSTANCE=false
+fi
+
+# Configurar swap para t2.micro (crítico)
+echo "💾 Configurando swap de 2GB (crítico para t2.micro)..."
 if [ ! -f /swapfile ]; then
     sudo fallocate -l 2G /swapfile
     sudo chmod 600 /swapfile
@@ -37,10 +47,10 @@ else
 fi
 
 # Otimizar uso de memória do sistema
-echo "⚡ Otimizando sistema para baixa memória..."
+echo "⚡ Otimizando sistema para t2.micro..."
 sudo tee -a /etc/sysctl.conf << EOF
 
-# Otimizações para e2-micro (1GB RAM)
+# Otimizações para t2.micro (1GB RAM)
 vm.swappiness=60
 vm.dirty_ratio=15
 vm.dirty_background_ratio=5
@@ -50,14 +60,13 @@ EOF
 
 sudo sysctl -p
 
-# Atualizar sistema (com cautela na memória)
-echo "📦 Atualizando sistema..."
+# Atualizar sistema
+echo "📦 Atualizando sistema Ubuntu..."
 sudo apt update
-# Não fazer upgrade completo para economizar tempo e recursos
 sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
 
-# Instalar Node.js 18 LTS (mais leve que 20.x)
-echo "🟢 Instalando Node.js 18 LTS (otimizado para e2-micro)..."
+# Instalar Node.js 18 LTS (otimizado para 1GB RAM)
+echo "🟢 Instalando Node.js 18 LTS (otimizado para t2.micro)..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
 
@@ -66,19 +75,19 @@ echo "✅ Node.js: $(node --version)"
 echo "✅ NPM: $(npm --version)"
 
 # Configurar limits do Node.js para baixa memória
-echo "🎯 Configurando Node.js para e2-micro..."
+echo "🎯 Configurando Node.js para t2.micro..."
 echo 'export NODE_OPTIONS="--max-old-space-size=400"' | sudo tee -a /etc/environment
 export NODE_OPTIONS="--max-old-space-size=400"
 
-# Instalar PM2 com configuração otimizada
+# Instalar PM2
 echo "⚡ Instalando PM2..."
 sudo npm install -g pm2 --production
 
-# Instalar apenas dependências essenciais
+# Instalar dependências essenciais
 echo "📝 Instalando dependências mínimas..."
-sudo apt install -y git curl wget ufw
+sudo apt install -y git curl wget ufw htop
 
-# Limpar cache do apt para liberar espaço
+# Limpeza preventiva
 sudo apt autoremove -y
 sudo apt autoclean
 
@@ -86,8 +95,8 @@ sudo apt autoclean
 echo "👤 Configurando usuário de aplicação..."
 sudo useradd -r -s /bin/bash -d /opt/olc-notificacoes olc-app 2>/dev/null || true
 
-# Configurar firewall
-echo "🔥 Configurando firewall..."
+# Configurar firewall (Security Groups AWS fazem a proteção principal)
+echo "🔥 Configurando firewall interno..."
 sudo ufw allow ssh
 sudo ufw allow 3000/tcp
 sudo ufw --force enable
@@ -117,18 +126,18 @@ echo "📦 Instalando dependências com otimizações..."
 export npm_config_cache=/tmp/npm-cache
 sudo -E npm install --production --no-optional --prefer-offline
 
-# Limpar cache npm para liberar espaço
+# Limpar cache npm
 sudo npm cache clean --force
 sudo rm -rf /tmp/npm-cache
 
-# Criar arquivo .env otimizado para GCP
-echo "⚙️ Criando template de configuração GCP..."
-sudo tee .env.gcp << EOF
-# Google Cloud e2-micro Production
+# Criar arquivo .env otimizado para AWS
+echo "⚙️ Criando template de configuração AWS..."
+sudo tee .env.aws << EOF
+# AWS EC2 t2.micro Production
 NODE_ENV=production
 PORT=3000
-CLOUD_PROVIDER=gcp
-INSTANCE_TYPE=e2-micro
+CLOUD_PROVIDER=aws
+INSTANCE_TYPE=t2.micro
 
 # Node.js otimizations
 NODE_OPTIONS=--max-old-space-size=400
@@ -155,8 +164,8 @@ LOG_MAX_SIZE=5m
 LOG_MAX_FILES=3
 EOF
 
-# Configurar PM2 otimizado para e2-micro
-echo "🔧 Configurando PM2 para e2-micro..."
+# Configurar PM2 otimizado para t2.micro
+echo "🔧 Configurando PM2 para t2.micro..."
 sudo tee ecosystem.config.js << EOF
 module.exports = {
   apps: [{
@@ -177,7 +186,7 @@ module.exports = {
     max_restarts: 5,
     min_uptime: '10s',
     kill_timeout: 3000,
-    // Crítico para e2-micro: limitar memória
+    // Crítico para t2.micro: limitar memória
     node_args: '--max-old-space-size=400'
   }]
 };
@@ -188,7 +197,7 @@ echo "📄 Configurando logs otimizados..."
 sudo mkdir -p /var/log/olc-notificacoes
 sudo chown olc-app:olc-app /var/log/olc-notificacoes
 
-# Configurar logrotate agressivo (espaço limitado)
+# Configurar logrotate agressivo
 sudo tee /etc/logrotate.d/olc-notificacoes << EOF
 /var/log/olc-notificacoes/*.log {
     hourly
@@ -206,16 +215,26 @@ EOF
 # Configurar permissões
 echo "🔐 Configurando permissões..."
 sudo chown -R olc-app:olc-app /opt/olc-notificacoes
-sudo chmod 600 /opt/olc-notificacoes/.env.gcp
+sudo chmod 600 /opt/olc-notificacoes/.env.aws
 
-# Script de monitoramento específico para e2-micro
-echo "📊 Criando monitoramento para e2-micro..."
-sudo tee /usr/local/bin/gcp-monitor << 'EOF'
+# Script de monitoramento específico para t2.micro
+echo "📊 Criando monitoramento para t2.micro..."
+sudo tee /usr/local/bin/aws-monitor << 'EOF'
 #!/bin/bash
-echo "=== OLC Notificações - Google Cloud e2-micro ==="
+echo "=== OLC Notificações - AWS EC2 t2.micro ==="
 echo "Data: $(date)"
 echo ""
-echo "=== Recursos (crítico para e2-micro) ==="
+
+# Informações da instância AWS
+if curl -s --max-time 3 http://169.254.169.254/latest/meta-data/instance-type >/dev/null 2>&1; then
+    echo "=== AWS Metadata ==="
+    echo "Instance Type: $(curl -s http://169.254.169.254/latest/meta-data/instance-type)"
+    echo "AZ: $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)"
+    echo "Public IP: $(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
+    echo ""
+fi
+
+echo "=== Recursos (crítico para t2.micro) ==="
 echo "CPU: $(cat /proc/loadavg)"
 echo "RAM: $(free -h | grep Mem)"
 echo "Swap: $(free -h | grep Swap)"
@@ -231,12 +250,12 @@ echo "=== Últimos logs ==="
 sudo -u olc-app pm2 logs olc-notificacoes --lines 3 --nostream
 EOF
 
-sudo chmod +x /usr/local/bin/gcp-monitor
+sudo chmod +x /usr/local/bin/aws-monitor
 
 # Script de limpeza de emergência
 sudo tee /usr/local/bin/emergency-cleanup << 'EOF'
 #!/bin/bash
-echo "🚨 Limpeza de emergência para e2-micro..."
+echo "🚨 Limpeza de emergência para t2.micro..."
 sudo apt autoclean
 sudo npm cache clean --force 2>/dev/null || true
 sudo journalctl --vacuum-time=1d
@@ -247,34 +266,42 @@ EOF
 
 sudo chmod +x /usr/local/bin/emergency-cleanup
 
-echo "✅ Instalação Google Cloud e2-micro concluída!"
+echo "✅ Instalação AWS EC2 t2.micro concluída!"
 echo ""
-echo "🌩️ GOOGLE CLOUD ESPECÍFICO:"
-echo "- VM e2-micro (1GB RAM) detectada"
+echo "☁️ AWS ESPECÍFICO:"
+echo "- Instância t2.micro (1GB RAM) detectada"
 echo "- Swap de 2GB configurado (crítico)"
 echo "- Node.js limitado a 400MB"
 echo "- PM2 com restart automático em 400MB"
 echo "- Logs com rotação agressiva"
 echo ""
 echo "🔒 CONFIGURAÇÃO NECESSÁRIA:"
-echo "1. Configure credenciais: /opt/olc-notificacoes/.env.gcp"
-echo "2. Copie para .env: sudo cp .env.gcp .env"
-echo "3. Configure regra de firewall no Console GCP:"
-echo "   VPC network > Firewall > Create Firewall Rule"
-echo "   Name: allow-olc-app, Target tags: olc-app, Port: 3000"
-echo "4. Adicione tag 'olc-app' à VM no console"
+echo "1. Configure credenciais: /opt/olc-notificacoes/.env.aws"
+echo "2. Copie para .env: sudo cp .env.aws .env"
+echo "3. Configure Security Groups no Console AWS:"
+echo "   - Porta 22 (SSH): 0.0.0.0/0"
+echo "   - Porta 3000 (App): 0.0.0.0/0"
+echo "   - Porta 80 (HTTP): 0.0.0.0/0"
+echo "   - Porta 443 (HTTPS): 0.0.0.0/0"
 echo ""
 echo "📋 Para iniciar:"
 echo "1. sudo -u olc-app pm2 start /opt/olc-notificacoes/ecosystem.config.js"
 echo "2. sudo -u olc-app pm2 save"
 echo "3. sudo env PATH=\$PATH:/usr/bin pm2 startup systemd -u olc-app --hp /home/olc-app"
 echo ""
-echo "📊 Monitoramento e2-micro:"
-echo "- gcp-monitor (recursos críticos)"
+echo "📊 Monitoramento t2.micro:"
+echo "- aws-monitor (status completo)"
 echo "- emergency-cleanup (se ficar sem memória)"
 echo "- pm2 monit"
 echo ""
-echo "🌐 IP externo: $(curl -s ifconfig.me || echo 'Execute: curl ifconfig.me')"
-echo "🪝 Webhook URL: http://\$(curl -s ifconfig.me):3000/trello-webhook"
+
+if [ "$AWS_INSTANCE" = true ]; then
+    echo "🌐 IP externo: $(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo 'Execute: curl ifconfig.me')"
+    echo "🪝 Webhook URL: http://\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3000/trello-webhook"
+else
+    echo "🌐 IP externo: $(curl -s ifconfig.me || echo 'Execute: curl ifconfig.me')"
+    echo "🪝 Webhook URL: http://\$(curl -s ifconfig.me):3000/trello-webhook"
+fi
+
 echo ""
 echo "⚠️ CRÍTICO: Com 1GB RAM, monitore sempre o uso de memória!"

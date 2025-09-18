@@ -1,22 +1,25 @@
 #!/bin/bash
 
-# Google Cloud Quick Start - OLC Notificações
-# Deploy rápido e otimizado para e2-micro (1GB RAM)
+# AWS Quick Start - OLC Notificações
+# Deploy rápido e otimizado para EC2 t2.micro (1GB RAM)
 
 set -e
 
-echo "🌩️ Google Cloud Quick Start - OLC Notificações"
-echo "=============================================="
+echo "☁️ AWS Quick Start - OLC Notificações"
+echo "======================================"
 echo ""
 
-# Verificar se estamos no GCP
+# Verificar se estamos na AWS
 echo "🔍 Verificando ambiente..."
-if curl -s -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/machine-type | grep -q "e2-micro"; then
-    echo "✅ Google Cloud e2-micro detectado"
-    GCP_INSTANCE=true
+if curl -s --max-time 3 http://169.254.169.254/latest/meta-data/instance-type | grep -q "t2.micro"; then
+    echo "✅ AWS EC2 t2.micro detectado"
+    AWS_INSTANCE=true
+    INSTANCE_TYPE=$(curl -s http://169.254.169.254/latest/meta-data/instance-type)
+    AVAILABILITY_ZONE=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+    echo "📍 Instance: $INSTANCE_TYPE na $AVAILABILITY_ZONE"
 else
-    echo "⚠️ Pode não ser uma instância e2-micro do GCP"
-    GCP_INSTANCE=false
+    echo "⚠️ Pode não ser uma instância t2.micro AWS"
+    AWS_INSTANCE=false
 fi
 
 # Verificar recursos críticos
@@ -46,15 +49,15 @@ if [ ! -f "/opt/olc-notificacoes/src/server.js" ]; then
         echo "   git clone https://github.com/SEU-USUARIO/olc-notificacoes.git"
         echo "   cd olc-notificacoes"
         echo ""
-        echo "2. Upload manual:"
-        echo "   gcloud compute scp olc-notificacoes.tar.gz INSTANCE:~/"
+        echo "2. Upload via SCP:"
+        echo "   scp -i chave.pem olc-notificacoes.tar.gz ubuntu@IP_AWS:~/"
         echo "   tar -xzf olc-notificacoes.tar.gz && cd olc-notificacoes"
         echo ""
         exit 1
     fi
 
-    echo "🚀 Instalação completa para e2-micro..."
-    ./deploy/install-gcp.sh
+    echo "🚀 Instalação completa para t2.micro..."
+    ./deploy/install-aws.sh
 
     echo ""
     echo "⚙️ CONFIGURAÇÃO INTERATIVA"
@@ -75,11 +78,11 @@ if [ ! -f "/opt/olc-notificacoes/src/server.js" ]; then
 
     # Criar .env otimizado
     sudo tee /opt/olc-notificacoes/.env << EOF
-# GCP e2-micro Production - RAM LIMITADA
+# AWS t2.micro Production - RAM LIMITADA
 NODE_ENV=production
 PORT=3000
-CLOUD_PROVIDER=gcp
-INSTANCE_TYPE=e2-micro
+CLOUD_PROVIDER=aws
+INSTANCE_TYPE=t2.micro
 
 # Otimizações críticas
 NODE_OPTIONS=--max-old-space-size=400
@@ -153,15 +156,15 @@ else
     fi
 fi
 
-# Verificar GCP networking
+# Verificar networking AWS
 echo ""
 echo "🌐 Verificando conectividade..."
 
-# Pegar IP externo via metadata GCP
-if [ "$GCP_INSTANCE" = true ]; then
-    EXTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
-    ZONE=$(curl -s -H "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/zone | cut -d/ -f4)
-    echo "📍 Zona GCP: $ZONE"
+# Pegar informações da instância AWS
+if [ "$AWS_INSTANCE" = true ]; then
+    EXTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+    REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+    echo "🌍 Região AWS: $REGION"
 else
     EXTERNAL_IP=$(curl -s ifconfig.me || echo "N/A")
 fi
@@ -195,7 +198,7 @@ fi
 
 # Status crítico de recursos
 echo ""
-echo "📊 STATUS RECURSOS e2-micro:"
+echo "📊 STATUS RECURSOS t2.micro:"
 echo "============================"
 FREE_RAM=$(free -m | awk 'NR==2{printf "%.0f", $7}')
 USED_RAM=$(free -m | awk 'NR==2{printf "%.0f", $3}')
@@ -205,19 +208,18 @@ if [ "$FREE_RAM" -lt "100" ]; then
     echo "🚨 RAM CRÍTICA! Execute: emergency-cleanup"
 fi
 
-# Verificar firewall GCP
+# Verificar Security Groups AWS
 echo ""
-echo "🔥 FIREWALL GCP:"
-echo "==============="
-echo "⚠️ CONFIGURE NO CONSOLE GCP:"
-echo "1. VPC network > Firewall"
-echo "2. Create Firewall Rule:"
-echo "   Name: allow-olc-app"
-echo "   Target tags: olc-app"
-echo "   Source IP: 0.0.0.0/0"
-echo "   Port: 3000"
-echo "3. Compute Engine > VM > Edit"
-echo "   Network tags: olc-app"
+echo "🔥 SECURITY GROUPS AWS:"
+echo "======================="
+echo "⚠️ CONFIGURE NO CONSOLE AWS:"
+echo "1. EC2 > Security Groups"
+echo "2. Selecione o Security Group da instância"
+echo "3. Adicione regras de entrada:"
+echo "   - SSH (22): 0.0.0.0/0"
+echo "   - Custom TCP (3000): 0.0.0.0/0"
+echo "   - HTTP (80): 0.0.0.0/0"
+echo "   - HTTPS (443): 0.0.0.0/0"
 
 # Webhook automático
 echo ""
@@ -228,7 +230,7 @@ echo ""
 echo "curl -X POST \"https://api.trello.com/1/webhooks/?key=SUA_CHAVE&token=SEU_TOKEN\" \\"
 echo "  -H \"Content-Type: application/json\" \\"
 echo "  -d '{"
-echo "    \"description\": \"OLC GCP e2-micro\","
+echo "    \"description\": \"OLC AWS t2.micro\","
 echo "    \"callbackURL\": \"http://$EXTERNAL_IP:3000/trello-webhook\","
 echo "    \"idModel\": \"SEU_BOARD_ID_TRELLO\""
 echo "  }'"
@@ -243,32 +245,31 @@ echo "3. Escaneie com WhatsApp"
 
 # Comandos de monitoramento
 echo ""
-echo "📊 MONITORAMENTO e2-micro:"
-echo "========================="
-echo "- gcp-monitor (status completo)"
+echo "📊 MONITORAMENTO t2.micro:"
+echo "=========================="
+echo "- aws-monitor (status completo)"
 echo "- emergency-cleanup (se RAM crítica)"
 echo "- pm2 monit"
 echo "- free -h (RAM)"
 echo "- df -h (disco)"
 
 echo ""
-echo "🎉 GOOGLE CLOUD DEPLOY CONCLUÍDO!"
-echo "================================="
+echo "🎉 AWS DEPLOY CONCLUÍDO!"
+echo "========================"
 echo ""
-echo "✅ Sistema otimizado para e2-micro"
+echo "✅ Sistema otimizado para t2.micro"
 echo "✅ Swap 2GB configurado"
 echo "✅ Node.js limitado (400MB)"
 echo "✅ PM2 com auto-restart"
 echo "✅ Logs mínimos"
 echo ""
 echo "🚨 PRÓXIMOS PASSOS CRÍTICOS:"
-echo "1. Configure firewall no Console GCP"
-echo "2. Adicione network tag 'olc-app'"
-echo "3. Registre webhook Trello"
-echo "4. Conecte WhatsApp"
-echo "5. MONITORE RAM constantemente!"
+echo "1. Configure Security Groups no Console AWS"
+echo "2. Registre webhook Trello"
+echo "3. Conecte WhatsApp"
+echo "4. MONITORE RAM constantemente!"
 echo ""
-echo "💰 Custo: R$ 0,00 (GCP Free Tier)"
-echo "⏱️ Validade: Permanente"
+echo "💰 Custo: Grátis primeiro ano (AWS Free Tier)"
+echo "⏱️ 750 horas/mês gratuitas t2.micro"
 echo ""
 echo "🆘 Se travar: emergency-cleanup"

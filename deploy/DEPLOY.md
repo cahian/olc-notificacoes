@@ -1,30 +1,30 @@
 # 🚀 Deploy em Produção - OLC Notificações
 
-Guia completo para deploy do sistema usando Google Cloud Platform (GCP).
+Guia completo para deploy do sistema usando AWS Free Tier.
 
 ## 📋 Pré-requisitos
 
-- VM e2-micro no Google Cloud (Free Tier)
+- Instância EC2 t2.micro no AWS Free Tier
 - Acesso SSH configurado
 - Repositório Git configurado
-- gcloud CLI instalado (opcional)
+- AWS CLI instalado (opcional)
 
-## 🔧 Especificações do Servidor (GCP Free Tier)
+## 🔧 Especificações do Servidor (AWS Free Tier)
 
-- **CPU**: 0.25-1 vCPU shared (e2-micro)
+- **CPU**: 1 vCPU (t2.micro)
 - **RAM**: 1GB
-- **Storage**: 30GB Standard Persistent Disk
-- **Network**: IP externo gratuito
+- **Storage**: 30GB EBS gp2 (SSD)
+- **Network**: IP público gratuito (primeiro ano)
 - **OS**: Ubuntu 22.04 LTS
-- **Região**: us-central1, us-west1, ou us-east1
+- **Região**: Qualquer região AWS
 
 ## 🚀 Processo de Deploy
 
 ### 1. Deploy inicial via Git
 
 ```bash
-# Conectar na VM GCP
-gcloud compute ssh olc-notificacoes --zone=us-central1-a
+# Conectar na instância EC2
+ssh -i chave.pem ubuntu@IP_PUBLICO_AWS
 
 # Clonar repositório
 git clone https://github.com/SEU-USUARIO/olc-notificacoes.git
@@ -32,14 +32,14 @@ cd olc-notificacoes
 
 # Executar instalação
 chmod +x deploy/*.sh
-sudo ./deploy/install-gcp.sh
+sudo ./deploy/install-aws.sh
 ```
 
 ### 2. Configuração inicial
 
 ```bash
 # Setup automático
-./deploy/gcp-quickstart.sh
+./deploy/aws-quickstart.sh
 ```
 
 ### 3. Deploy via Git (atualizações)
@@ -53,14 +53,14 @@ sudo ./deploy/git-deploy.sh
 ### 4. Configurar webhook do Trello
 
 ```bash
-# Pegar IP externo da VM
+# Pegar IP externo da instância
 EXTERNAL_IP=$(curl -s ifconfig.me)
 
 # Registrar webhook
 curl -X POST "https://api.trello.com/1/webhooks/?key=SUA_CHAVE&token=SEU_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "OLC GCP Production",
+    "description": "OLC AWS Production",
     "callbackURL": "http://'$EXTERNAL_IP':3000/trello-webhook",
     "idModel": "SEU_BOARD_ID_TRELLO"
   }'
@@ -73,7 +73,7 @@ curl -X POST "https://api.trello.com/1/webhooks/?key=SUA_CHAVE&token=SEU_TOKEN" 
 - `.env` → Permissão 600, owner olc-app
 - Credenciais nunca commitadas
 - Usuário dedicado para aplicação
-- Firewall configurado
+- Security Groups configurados
 
 ### Monitoramento de logs
 
@@ -99,7 +99,7 @@ git add .
 git commit -m "feat: nova funcionalidade"
 git push origin main
 
-# No servidor GCP
+# No servidor AWS
 cd /opt/olc-notificacoes
 sudo ./deploy/git-deploy.sh
 ```
@@ -167,7 +167,7 @@ pm2 logs olc-notificacoes --lines 50
 
 1. Testar credenciais de email
 2. Verificar portas: `sudo netstat -tlnp | grep 993`
-3. Verificar firewall do provedor de email
+3. Verificar Security Groups AWS
 
 ## 📊 Monitoramento em Produção
 
@@ -180,7 +180,8 @@ pm2 logs olc-notificacoes --lines 50
 
 ## 🎯 Checklist Final
 
-- [ ] Servidor Azure criado e configurado
+- [ ] Instância EC2 t2.micro criada
+- [ ] Security Groups configurados (portas 22, 3000, 80, 443)
 - [ ] Scripts de deploy executados
 - [ ] Credenciais configuradas de forma segura
 - [ ] PM2 configurado e rodando
@@ -188,7 +189,7 @@ pm2 logs olc-notificacoes --lines 50
 - [ ] Testes de notificação funcionando
 - [ ] WhatsApp conectado e grupo criado
 - [ ] Logs sendo gerados corretamente
-- [ ] Firewall configurado
+- [ ] Security Groups configurados
 - [ ] Backup configurado
 
 **Sistema pronto para produção! 🎉**
