@@ -20,9 +20,49 @@ sudo apt install -y nodejs
 echo "⚡ Instalando PM2..."
 sudo npm install -g pm2
 
-# Instalar Git se não estiver instalado
+# Instalar dependências do sistema + WhatsApp
 echo "📝 Instalando dependências do sistema..."
 sudo apt install -y git curl wget unzip
+
+# Dependências críticas para Chromium/Puppeteer (WhatsApp)
+echo "🔧 Instalando dependências do Chromium para WhatsApp..."
+sudo apt install -y \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
+    libgtk-3-0 \
+    libgdk-pixbuf2.0-0 \
+    libdrm2 \
+    libxss1 \
+    libgconf-2-4 \
+    libxrandr2 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libcairo-gobject2 \
+    libcairo2 \
+    libgcc-s1 \
+    libglib2.0-0 \
+    libpango-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrender1 \
+    libxtst6 \
+    ca-certificates \
+    fonts-liberation \
+    libappindicator1 \
+    libgbm1 \
+    libnspr4 \
+    lsb-release \
+    xdg-utils
 
 # Criar usuário de aplicação
 echo "👤 Configurando usuário de aplicação..."

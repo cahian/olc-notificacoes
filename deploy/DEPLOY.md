@@ -159,9 +159,18 @@ pm2 logs olc-notificacoes --lines 50
 
 ### WhatsApp não conecta
 
+**Erro de dependências (libatk-1.0.so.0):**
+```bash
+# Corrigir dependências do Chromium
+cd /opt/olc-notificacoes
+sudo ./deploy/fix-whatsapp.sh
+```
+
+**Outros problemas:**
 1. Limpar sessão: `sudo rm -rf /opt/olc-notificacoes/.wwebjs_auth`
 2. Restart: `sudo -u olc-app pm2 restart olc-notificacoes`
 3. Verificar QR nos logs: `pm2 logs olc-notificacoes`
+4. Se persistir: `sudo reboot` (reiniciar instância EC2)
 
 ### Emails não monitoram
 
