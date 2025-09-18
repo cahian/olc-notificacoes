@@ -1,204 +1,116 @@
-# 🚀 Deploy em Produção - OLC Notificações
+# 🚀 Deploy Simples - OLC Notificações
 
-Guia completo para deploy do sistema usando AWS Free Tier.
+Deploy mínimo para AWS EC2 t2.micro (Free Tier).
+
+## 🎯 3 comandos para deploy completo
+
+### **Deploy inicial:**
+```bash
+git clone https://github.com/SEU-USUARIO/olc-notificacoes.git
+cd olc-notificacoes
+./deploy/simple-install.sh && ./deploy/simple-start.sh
+```
+
+### **Atualizações:**
+```bash
+./deploy/simple-deploy.sh
+```
 
 ## 📋 Pré-requisitos
 
-- Instância EC2 t2.micro no AWS Free Tier
-- Acesso SSH configurado
-- Repositório Git configurado
-- AWS CLI instalado (opcional)
+- **EC2 t2.micro** (AWS Free Tier)
+- **Ubuntu 22.04**
+- **Security Groups**: Portas 22 (SSH) e 3000 (App)
 
-## 🔧 Especificações do Servidor (AWS Free Tier)
+## 🔧 O que cada script faz
 
-- **CPU**: 1 vCPU (t2.micro)
-- **RAM**: 1GB
-- **Storage**: 30GB EBS gp2 (SSD)
-- **Network**: IP público gratuito (primeiro ano)
-- **OS**: Ubuntu 22.04 LTS
-- **Região**: Qualquer região AWS
+### `simple-install.sh` (30 linhas)
+- ✅ Configura swap (2GB)
+- ✅ Instala Node.js 18
+- ✅ Instala dependências WhatsApp
+- ✅ Instala PM2
+- ✅ Instala dependências do projeto
 
-## 🚀 Processo de Deploy
+### `simple-start.sh` (20 linhas)
+- ✅ Cria .env interativo
+- ✅ Inicia PM2
+- ✅ Configura auto-start
 
-### 1. Deploy inicial via Git
+### `simple-deploy.sh` (10 linhas)
+- ✅ Git pull
+- ✅ Atualiza deps (se necessário)
+- ✅ Restart PM2
 
-```bash
-# Conectar na instância EC2
-ssh -i chave.pem ubuntu@IP_PUBLICO_AWS
+## 🌐 Security Groups AWS
 
-# Clonar repositório
-git clone https://github.com/SEU-USUARIO/olc-notificacoes.git
-cd olc-notificacoes
+**Regras de entrada:**
+- **SSH (22)**: 0.0.0.0/0
+- **Custom TCP (3000)**: 0.0.0.0/0
 
-# Executar instalação
-chmod +x deploy/*.sh
-sudo ./deploy/install-aws.sh
-```
-
-### 2. Configuração inicial
+## 🪝 Webhook Trello
 
 ```bash
-# Setup automático
-./deploy/aws-quickstart.sh
-```
-
-### 3. Deploy via Git (atualizações)
-
-```bash
-# Para atualizações futuras
-cd /opt/olc-notificacoes
-sudo ./deploy/git-deploy.sh
-```
-
-### 4. Configurar webhook do Trello
-
-```bash
-# Pegar IP externo da instância
-EXTERNAL_IP=$(curl -s ifconfig.me)
+# Pegar IP da instância
+IP=$(curl -s ifconfig.me)
 
 # Registrar webhook
 curl -X POST "https://api.trello.com/1/webhooks/?key=SUA_CHAVE&token=SEU_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "OLC AWS Production",
-    "callbackURL": "http://'$EXTERNAL_IP':3000/trello-webhook",
+    "description": "OLC AWS",
+    "callbackURL": "http://'$IP':3000/trello-webhook",
     "idModel": "SEU_BOARD_ID_TRELLO"
   }'
 ```
 
-## 🔒 Segurança
-
-### Arquivos sensíveis protegidos
-
-- `.env` → Permissão 600, owner olc-app
-- Credenciais nunca commitadas
-- Usuário dedicado para aplicação
-- Security Groups configurados
-
-### Monitoramento de logs
+## 📱 WhatsApp
 
 ```bash
-# Ver logs em tempo real
+# Ver logs para QR Code
 pm2 logs olc-notificacoes
 
-# Status dos serviços
-pm2 status
-
-# Monitor detalhado
-pm2 monit
-```
-
-## 🔧 Manutenção
-
-### Atualizar aplicação
-
-**Via Git (Recomendado)**
-```bash
-# Fazer mudanças locais
-git add .
-git commit -m "feat: nova funcionalidade"
-git push origin main
-
-# No servidor AWS
-cd /opt/olc-notificacoes
-sudo ./deploy/git-deploy.sh
-```
-
-O script git-deploy.sh faz automaticamente:
-- ✅ Backup de configurações (.env, WhatsApp)
-- ✅ Pull das atualizações
-- ✅ Atualização de dependências (se necessário)
-- ✅ Restart da aplicação
-- ✅ Teste de conectividade
-
-### Backup
-
-```bash
-# Backup das configurações
-sudo tar -czf backup-$(date +%Y%m%d).tar.gz \
-  /opt/olc-notificacoes/.env \
-  /opt/olc-notificacoes/ecosystem.config.js \
-  /var/log/olc-notificacoes/
-```
-
-### Restart completo
-
-```bash
-sudo -u olc-app pm2 restart olc-notificacoes
-```
-
-## 🧪 Testes de Produção
-
-### 1. Teste de conectividade
-
-```bash
-curl http://IP_SERVIDOR:3000/
-```
-
-### 2. Teste de notificação
-
-```bash
-curl -X POST http://IP_SERVIDOR:3000/test-notification \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Teste de produção!"}'
-```
-
-### 3. Verificar logs
-
-```bash
-pm2 logs olc-notificacoes --lines 50
+# Limpar sessão se necessário
+rm -rf .wwebjs_auth && pm2 restart olc-notificacoes
 ```
 
 ## 🚨 Troubleshooting
 
-### Serviço não inicia
-
-1. Verificar logs: `pm2 logs olc-notificacoes`
-2. Verificar .env: `sudo cat /opt/olc-notificacoes/.env`
-3. Verificar permissões: `ls -la /opt/olc-notificacoes/`
-
-### WhatsApp não conecta
-
-**Erro de dependências (libatk-1.0.so.0):**
+### App não inicia
 ```bash
-# Corrigir dependências do Chromium
-cd /opt/olc-notificacoes
-sudo ./deploy/fix-whatsapp.sh
+pm2 logs olc-notificacoes  # Ver erros
+free -h                    # Verificar RAM
+pm2 restart olc-notificacoes
 ```
 
-**Outros problemas:**
-1. Limpar sessão: `sudo rm -rf /opt/olc-notificacoes/.wwebjs_auth`
-2. Restart: `sudo -u olc-app pm2 restart olc-notificacoes`
-3. Verificar QR nos logs: `pm2 logs olc-notificacoes`
-4. Se persistir: `sudo reboot` (reiniciar instância EC2)
+### WhatsApp não conecta
+```bash
+# Instalar dependências faltantes
+sudo apt install -y libnss3 libatk1.0-0 libgtk-3-0 libgbm1
 
-### Emails não monitoram
+# Limpar e reconectar
+rm -rf .wwebjs_auth && pm2 restart olc-notificacoes
+```
 
-1. Testar credenciais de email
-2. Verificar portas: `sudo netstat -tlnp | grep 993`
-3. Verificar Security Groups AWS
+### RAM baixa (t2.micro = 1GB)
+```bash
+free -h          # Verificar uso
+pm2 monit        # Monitorar processo
+sudo reboot      # Último recurso
+```
 
-## 📊 Monitoramento em Produção
+## 💰 AWS Free Tier
 
-- **CPU/RAM**: `htop` ou `pm2 monit`
-- **Logs**: `/var/log/olc-notificacoes/`
-- **Status**: `pm2 status`
-- **Uptime**: `pm2 info olc-notificacoes`
+- **750 horas/mês** t2.micro (12 meses grátis)
+- **30GB EBS** storage
+- **15GB** data transfer
 
----
+## 📊 Comandos úteis
 
-## 🎯 Checklist Final
+```bash
+pm2 status              # Status da app
+pm2 logs olc-notificacoes  # Ver logs
+pm2 monit               # Monitor recursos
+curl localhost:3000     # Testar app
+```
 
-- [ ] Instância EC2 t2.micro criada
-- [ ] Security Groups configurados (portas 22, 3000, 80, 443)
-- [ ] Scripts de deploy executados
-- [ ] Credenciais configuradas de forma segura
-- [ ] PM2 configurado e rodando
-- [ ] Webhook do Trello registrado
-- [ ] Testes de notificação funcionando
-- [ ] WhatsApp conectado e grupo criado
-- [ ] Logs sendo gerados corretamente
-- [ ] Security Groups configurados
-- [ ] Backup configurado
-
-**Sistema pronto para produção! 🎉**
+**Deploy simples, sem complicação! 🎉**
