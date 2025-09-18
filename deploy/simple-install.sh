@@ -29,7 +29,7 @@ sudo apt install -y nodejs
 
 # Dependências WhatsApp
 echo "🔧 Dependências WhatsApp..."
-sudo apt install -y libnss3 libatk1.0-0 libgtk-3-0 libgbm1 libasound2
+sudo apt install -y libnss3 libatk1.0-0t64 libgtk-3-0t64 libgbm1 libasound2t64
 
 # PM2
 echo "⚡ Instalando PM2..."
