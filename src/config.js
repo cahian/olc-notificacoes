@@ -23,7 +23,7 @@ const config = {
         connTimeout: 10000,
         targetEmails: process.env.TARGET_EMAILS 
             ? process.env.TARGET_EMAILS.split(',').map(email => email.trim())
-            : ['atendimento.totvs@totvs.com.br']
+            : ['exemplo@empresa.com.br']
     },
 
     // Configurações do Trello

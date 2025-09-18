@@ -13,7 +13,7 @@ Sistema automatizado de notificações WhatsApp para monitoramento de Trello e e
 ## 🎯 Casos de Uso
 
 1. **Trello**: Monitorar o quadro [Unimed de Monte Alto](https://trello.com/b/UWvlgBP4/unimed-de-monte-alto)
-2. **Email**: Alertas para emails de `atendimento.totvs@totvs.com.br`
+2. **Email**: Alertas para emails configurados
 
 ## 🛠️ Instalação
 
@@ -49,7 +49,7 @@ EMAIL_PASSWORD=sua-senha-de-app
 EMAIL_HOST=imap.gmail.com
 
 # Emails para monitorar
-TARGET_EMAILS=atendimento.totvs@totvs.com.br
+TARGET_EMAILS=exemplo@empresa.com.br
 
 # Servidor
 PORT=3000

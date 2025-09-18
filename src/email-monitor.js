@@ -92,7 +92,7 @@ class EmailMonitor {
     }
 
     shouldNotifyEmail(from) {
-        const targetEmails = this.emailConfig.targetEmails || ['atendimento.totvs@totvs.com.br'];
+        const targetEmails = this.emailConfig.targetEmails || ['exemplo@empresa.com.br'];
         
         return targetEmails.some(email => 
             from.toLowerCase().includes(email.toLowerCase())

@@ -119,7 +119,7 @@ curl -X POST "https://api.trello.com/1/webhooks/?key=SUA_CHAVE&token=SEU_TOKEN" 
   -d '{
     "description": "OLC Google Cloud",
     "callbackURL": "http://'$EXTERNAL_IP':3000/trello-webhook",
-    "idModel": "6663185e7551188483173907"
+    "idModel": "SEU_BOARD_ID_TRELLO"
   }'
 ```
 

@@ -144,7 +144,7 @@ EMAIL_PORT=993
 EMAIL_TLS=true
 
 # Monitoramento
-TARGET_EMAILS=atendimento.totvs@totvs.com.br
+TARGET_EMAILS=exemplo@empresa.com.br
 
 # Trello
 TRELLO_BOARD_URL=https://trello.com/b/UWvlgBP4/unimed-de-monte-alto

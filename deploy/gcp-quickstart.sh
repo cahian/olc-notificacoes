@@ -230,7 +230,7 @@ echo "  -H \"Content-Type: application/json\" \\"
 echo "  -d '{"
 echo "    \"description\": \"OLC GCP e2-micro\","
 echo "    \"callbackURL\": \"http://$EXTERNAL_IP:3000/trello-webhook\","
-echo "    \"idModel\": \"6663185e7551188483173907\""
+echo "    \"idModel\": \"SEU_BOARD_ID_TRELLO\""
 echo "  }'"
 
 # WhatsApp setup

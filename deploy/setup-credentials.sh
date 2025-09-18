@@ -33,7 +33,7 @@ read -p "📱 Nome do grupo WhatsApp: " WHATSAPP_GROUP_NAME
 WHATSAPP_GROUP_NAME=${WHATSAPP_GROUP_NAME:-"GRUPO DE NOTIFICAÇÕES"}
 
 read -p "📧 Emails para monitorar (separados por vírgula): " TARGET_EMAILS
-TARGET_EMAILS=${TARGET_EMAILS:-"atendimento.totvs@totvs.com.br"}
+TARGET_EMAILS=${TARGET_EMAILS:-"exemplo@empresa.com.br"}
 
 # Criar arquivo .env seguro
 echo "💾 Salvando configurações..."
