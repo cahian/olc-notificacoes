@@ -1,91 +1,67 @@
 # 🚀 Deploy em Produção - OLC Notificações
 
-Guia completo para deploy do sistema em servidor Azure Ubuntu.
+Guia completo para deploy do sistema usando Google Cloud Platform (GCP).
 
 ## 📋 Pré-requisitos
 
-- Servidor Ubuntu 20.04+ na Azure
+- VM e2-micro no Google Cloud (Free Tier)
 - Acesso SSH configurado
-- Usuário com privilégios sudo
-- Chave SSH configurada
+- Repositório Git configurado
+- gcloud CLI instalado (opcional)
 
-## 🔧 Especificações Mínimas do Servidor
+## 🔧 Especificações do Servidor (GCP Free Tier)
 
-- **CPU**: 2 vCPU (Standard_B2s)
-- **RAM**: 1GB mínimo, 2GB recomendado
-- **Storage**: 20GB SSD
-- **Network**: Porta 3000 aberta
-- **OS**: Ubuntu 20.04 LTS
+- **CPU**: 0.25-1 vCPU shared (e2-micro)
+- **RAM**: 1GB
+- **Storage**: 30GB Standard Persistent Disk
+- **Network**: IP externo gratuito
+- **OS**: Ubuntu 22.04 LTS
+- **Região**: us-central1, us-west1, ou us-east1
 
 ## 🚀 Processo de Deploy
 
-### 1. Preparar arquivos localmente
+### 1. Deploy inicial via Git
 
 ```bash
-# Comprimir projeto (excluindo node_modules e .env)
-tar -czf olc-notificacoes.tar.gz \
-  --exclude=node_modules \
-  --exclude=.env \
-  --exclude=.wwebjs_auth \
-  --exclude=.git \
-  .
-```
+# Conectar na VM GCP
+gcloud compute ssh olc-notificacoes --zone=us-central1-a
 
-### 2. Upload para servidor
-
-```bash
-# Copiar arquivos via SCP
-scp olc-notificacoes.tar.gz user@IP_SERVIDOR:~/
-
-# Conectar no servidor
-ssh user@IP_SERVIDOR
-```
-
-### 3. Extração e instalação
-
-```bash
-# Extrair arquivos
-tar -xzf olc-notificacoes.tar.gz
-mv olc-notificacoes ~/
+# Clonar repositório
+git clone https://github.com/SEU-USUARIO/olc-notificacoes.git
+cd olc-notificacoes
 
 # Executar instalação
-cd ~/olc-notificacoes
 chmod +x deploy/*.sh
-sudo ./deploy/install-server.sh
+sudo ./deploy/install-gcp.sh
 ```
 
-### 4. Configuração segura de credenciais
+### 2. Configuração inicial
 
 ```bash
-# Configurar credenciais de forma segura
-./deploy/setup-credentials.sh
+# Setup automático
+./deploy/gcp-quickstart.sh
 ```
 
-**⚠️ NUNCA digite credenciais diretamente no terminal ou scripts!**
-
-### 5. Inicialização do serviço
+### 3. Deploy via Git (atualizações)
 
 ```bash
-# Iniciar aplicação
-sudo -u olc-app pm2 start /opt/olc-notificacoes/ecosystem.config.js
-
-# Salvar configuração do PM2
-sudo -u olc-app pm2 save
-
-# Configurar inicialização automática
-sudo pm2 startup
+# Para atualizações futuras
+cd /opt/olc-notificacoes
+sudo ./deploy/git-deploy.sh
 ```
 
-### 6. Configurar webhook do Trello
-
-Com o servidor público, registre o webhook:
+### 4. Configurar webhook do Trello
 
 ```bash
+# Pegar IP externo da VM
+EXTERNAL_IP=$(curl -s ifconfig.me)
+
+# Registrar webhook
 curl -X POST "https://api.trello.com/1/webhooks/?key=SUA_CHAVE&token=SEU_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "OLC Notificações - Produção",
-    "callbackURL": "http://IP_SERVIDOR:3000/trello-webhook",
+    "description": "OLC GCP Production",
+    "callbackURL": "http://'$EXTERNAL_IP':3000/trello-webhook",
     "idModel": "6663185e7551188483173907"
   }'
 ```
@@ -116,27 +92,24 @@ pm2 monit
 
 ### Atualizar aplicação
 
-**Opção 1: Upload manual (Recomendado)**
+**Via Git (Recomendado)**
 ```bash
-# 1. Local - comprimir mudanças
-tar -czf olc-update.tar.gz --exclude=node_modules --exclude=.env src/ package.json
+# Fazer mudanças locais
+git add .
+git commit -m "feat: nova funcionalidade"
+git push origin main
 
-# 2. Upload para servidor
-scp olc-update.tar.gz user@SERVIDOR_IP:~/
-
-# 3. No servidor - executar update
-ssh user@SERVIDOR_IP
-chmod +x /opt/olc-notificacoes/deploy/update-production.sh
-sudo /opt/olc-notificacoes/deploy/update-production.sh
-```
-
-**Opção 2: Via Git (se repositório configurado)**
-```bash
+# No servidor GCP
 cd /opt/olc-notificacoes
-git pull origin main
-npm install --production
-sudo -u olc-app pm2 reload olc-notificacoes
+sudo ./deploy/git-deploy.sh
 ```
+
+O script git-deploy.sh faz automaticamente:
+- ✅ Backup de configurações (.env, WhatsApp)
+- ✅ Pull das atualizações
+- ✅ Atualização de dependências (se necessário)
+- ✅ Restart da aplicação
+- ✅ Teste de conectividade
 
 ### Backup
 
