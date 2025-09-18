@@ -105,11 +105,11 @@ class EmailMonitor {
 
 📨 *De:* ${from}
 📝 *Assunto:* ${subject}
-📅 *Data:* ${new Date(date).toLocaleString('pt-BR')}
+📅 *Data:* ${new Date(date).toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})}
 
 ⚠️ Email de remetente monitorado recebido!
 
-⏰ ${new Date().toLocaleString('pt-BR')}`;
+⏰ ${new Date().toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})}`;
 
             await this.whatsappBot.sendMessageToGroup(this.groupName, message);
             console.log(`✅ Notificação enviada para email de: ${from}`);

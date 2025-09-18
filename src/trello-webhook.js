@@ -95,7 +95,7 @@ class TrelloWebhook {
 👤 *Criado por:* ${member.fullName}
 🔗 *Link:* https://trello.com/c/${card.shortLink}
 
-⏰ ${new Date().toLocaleString('pt-BR')}`;
+⏰ ${new Date().toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})}`;
 
         await this.whatsappBot.sendMessageToGroup(this.groupName, message);
         console.log(`✅ Notificação enviada: Novo card "${card.name}"`);
@@ -115,7 +115,7 @@ class TrelloWebhook {
 👤 *Movido por:* ${member.fullName}
 🔗 *Link:* https://trello.com/c/${card.shortLink}
 
-⏰ ${new Date().toLocaleString('pt-BR')}`;
+⏰ ${new Date().toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})}`;
 
         await this.whatsappBot.sendMessageToGroup(this.groupName, message);
         console.log(`✅ Notificação enviada: Card "${card.name}" movido`);
@@ -133,7 +133,7 @@ class TrelloWebhook {
 📝 *Texto:* ${comment.length > 100 ? comment.substring(0, 100) + '...' : comment}
 🔗 *Link:* https://trello.com/c/${card.shortLink}
 
-⏰ ${new Date().toLocaleString('pt-BR')}`;
+⏰ ${new Date().toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})}`;
 
         await this.whatsappBot.sendMessageToGroup(this.groupName, message);
         console.log(`✅ Notificação enviada: Comentário no card "${card.name}"`);
